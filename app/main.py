@@ -16,4 +16,4 @@ def get_ip_address():
 @app.get("/ip")
 async def get_client_ip(request: Request):
     client_host = request.client.host
-    return JSONResponse(content={"ipnewtest": get_ip_address()})
+    return JSONResponse(content={"ipnewappnew": get_ip_address()})
