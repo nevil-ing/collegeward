@@ -7,7 +7,7 @@ from firebase_admin import auth as firebase_auth
 from app.models.user import User
 from app.db.utils import BaseRepository
 from app.schemas.user_schema import UserCreate, UserUpdate
-from app.core.exceptions import NotFoundError, DatabaseError, AuthenticationError
+from app.utils.exceptions import NotFoundError, DatabaseError, AuthenticationError
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
