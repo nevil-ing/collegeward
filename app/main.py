@@ -1,12 +1,85 @@
+import datetime
 import requests
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from app.core.config import settings
+from app.db.base import Base
+from app.core.logging import get_logger
+import logging
+from app.db.session import engine
+from app.utils.error_handler import setup_exception_handlers
+
+
+logger = get_logger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("starting CollegeWard API")
+
+    try:
+        async  with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables created successfully")
+
+    except Exception as e:
+        logger.warning(f"Database initialization failed: {e}")
+        logger.info("API will continue without database functionality")
 
 app = FastAPI(
+    lifespan=lifespan,
     title="Collegeward API",
     description="AI-powered interactive study companion for medical students",
     version="0.1.0",
     docs_url="/",
     redoc_url="/redoc",
 )
+
+setup_exception_handlers(app)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+#storage_path = Path("./storage")
+#storage_path.mkdir(parents=True, exist_ok=True)
+#app.mount("/storage", StaticFiles(directory=str(storage_path)), name="storage")
+#logger.info(f"Static file server mounted at /storage (directory: {storage_path.absolute()})")
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+"""
+@app.get("/health/detailed")
+async def health_check_detailed():
+    from app.core.monitoring import health_checker
+
+    try:
+        results = await health_checker.run_all_checks()
+        overall_status = health_checker.get_overall_status(results)
+
+        return {
+            "status": overall_status,
+            "service": "StudyBlitzAI API",
+            "timestamp": datetime.utcnow().isoformat(),
+            "checks": {name: asdict(result) for name, result in results.items()}
+        }
+    except Exception as e:
+        logger.error(f"Detailed health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "service": "StudyBlitzAI API",
+                "timestamp": datetime.utcnow().isoformat(),
+                "error": "Health check system failure"
+            }
+        )"""
+
 
