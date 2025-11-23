@@ -5,13 +5,20 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
 from app.core.config import settings
+from app.core.security import RateLimiter
 from app.db.base import Base
 from app.core.logging import get_logger
 import logging
 from app.db.session import engine
+from app.middleware.auth_middleware import SecurityHeadersMiddleware, AuthenticationLoggingMiddleware
+from app.middleware.monitoring_middleware import ResponseEnhancementMiddleware, ComprehensiveMonitoringMiddleware, \
+    RequestValidationMiddleware
 from app.utils.error_handler import setup_exception_handlers
-
+from app.core.rate_limiter import RateLimitMiddleware
 
 logger = get_logger(__name__)
 
@@ -38,6 +45,19 @@ app = FastAPI(
 )
 
 setup_exception_handlers(app)
+
+#register middlewares
+app.add_middleware(ResponseEnhancementMiddleware)
+app.add_middleware(ComprehensiveMonitoringMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(RequestValidationMiddleware)
+app.add_middleware(AuthenticationLoggingMiddleware)
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.ALLOWED_HOSTS,
+)
 
 app.add_middleware(
     CORSMiddleware,
