@@ -66,11 +66,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+#api routes
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 
-#storage_path = Path("./storage")
-#storage_path.mkdir(parents=True, exist_ok=True)
-#app.mount("/storage", StaticFiles(directory=str(storage_path)), name="storage")
-#logger.info(f"Static file server mounted at /storage (directory: {storage_path.absolute()})")
+storage_path = Path("./storage")
+storage_path.mkdir(parents=True, exist_ok=True)
+app.mount("/storage", StaticFiles(directory=str(storage_path)), name="storage")
+logger.info(f"Static file server mounted at /storage (directory: {storage_path.absolute()})")
 
 @app.get("/health")
 async def health_check():
