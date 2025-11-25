@@ -7,7 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.security import RateLimiter
 from app.db.base import Base
@@ -19,7 +19,7 @@ from app.middleware.monitoring_middleware import ResponseEnhancementMiddleware, 
     RequestValidationMiddleware
 from app.utils.error_handler import setup_exception_handlers
 from app.core.rate_limiter import RateLimitMiddleware
-
+from app.api.v1 import auth
 logger = get_logger(__name__)
 
 @asynccontextmanager
