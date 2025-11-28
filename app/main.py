@@ -25,18 +25,23 @@ from app.api.v1 import auth
 
 logger = get_logger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("starting CollegeWard API")
+    # Startup
+    logger.info("Starting CollegeWard API")
 
     try:
-        async  with engine.begin() as conn:
+        async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created successfully")
-
     except Exception as e:
         logger.warning(f"Database initialization failed: {e}")
         logger.info("API will continue without database functionality")
+
+    yield
+    logger.info("Shutting down CollegeWard API")
+
 
 @lru_cache
 def get_settings():
