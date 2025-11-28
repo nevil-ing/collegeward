@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, verify_token_fn):
-        super() .__init__(app)
+        super().__init__(app)
         self.verify_token_fn = verify_token_fn
 
     async def dispatch(self, request: Request, call_next):
