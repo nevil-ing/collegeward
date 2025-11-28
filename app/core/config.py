@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     FIREBASE_CLIENT_ID: str
     FIREBASE_AUTH_URI: str
     FIREBASE_TOKEN_URI: str
-    FIREBASE_STORAGE_BUCKET: str
+    FIREBASE_STORAGE_BUCKET: str = ""
 
     # Local Storage
     LOCAL_STORAGE_ROOT: str = "./storage"
