@@ -1,4 +1,6 @@
 import datetime
+from functools import lru_cache
+
 import requests
 from pathlib import Path
 from fastapi import FastAPI, Request
@@ -36,6 +38,9 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Database initialization failed: {e}")
         logger.info("API will continue without database functionality")
 
+@lru_cache
+def get_settings():
+    return settings()
 app = FastAPI(
     lifespan=lifespan,
     title="Collegeward API",
