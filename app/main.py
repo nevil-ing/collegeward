@@ -20,6 +20,7 @@ from app.middleware.monitoring_middleware import ResponseEnhancementMiddleware, 
 from app.utils.error_handler import setup_exception_handlers
 from app.core.rate_limiter import RateLimitMiddleware
 from app.api.v1 import auth
+
 logger = get_logger(__name__)
 
 @asynccontextmanager
