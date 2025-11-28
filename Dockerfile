@@ -13,6 +13,8 @@ WORKDIR /app
 
 COPY --from=builder /app /app
 
+RUN mkdir -p logs
+
 EXPOSE 8005
 
 #run the app

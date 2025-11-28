@@ -16,6 +16,9 @@ services:
 
     env_file:
       - .env
+    volumes:
+      - ./storage:/app/storage
+      - ./logs:/app/logs
     depends_on:
       - db
   db:
