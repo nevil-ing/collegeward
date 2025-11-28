@@ -11,7 +11,7 @@ from app.db.base import BaseModel
 class User(BaseModel):
     __tablename__ = "users"
 
-    firebase_uid = Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+    firebase_uid: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     display_name: Mapped[Optional[str]] = mapped_column(String(100))
     study_level: Mapped[Optional[str]] = mapped_column(String(50))
