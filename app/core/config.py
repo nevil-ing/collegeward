@@ -9,8 +9,8 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str
-    ALLOWED_HOSTS: List[str]
-    CORS_ORIGINS: List[str]
+    ALLOWED_HOSTS: str
+    CORS_ORIGINS: str
 
     # Database
     DB_USER: str
@@ -121,25 +121,23 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     model_config = ConfigDict(
-        extra="ignore"
+        extra="ignore",
+        env_file=".env",
+        env_file_encoding="utf-8"
     )
 
-    @field_validator("CORS_ORIGINS", mode="before")
+    @field_validator("ALLOWED_HOSTS", mode="after")
     @classmethod
-    def assemble_cors_origins(cls, v):
+    def parse_allowed_hosts(cls, v) -> List[str]:
         if isinstance(v, str):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, list):
-            return v
+            return [i.strip() for i in v.split(",") if i.strip()]
         return v
 
-    @field_validator("ALLOWED_HOSTS", mode="before")
+    @field_validator("CORS_ORIGINS", mode="after")
     @classmethod
-    def assemble_allowed_hosts(cls, v):
+    def parse_cors_origins(cls, v) -> List[str]:
         if isinstance(v, str):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, list):
-            return v
+            return [i.strip() for i in v.split(",") if i.strip()]
         return v
 
 
