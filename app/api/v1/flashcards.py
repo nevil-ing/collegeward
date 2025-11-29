@@ -8,7 +8,7 @@ from app.core.security import get_current_user
 from app.db.session import get_db
 from app.core.logging import get_logger
 from app.utils.exceptions import ValidationError, NotFoundError
-from app.services.flashcard_service import FlashcardService
+from app.services.flashcard_services import
 from app.services.ai_service import ai_service_manager
 from app.schemas.flashcard_schema import (
     FlashcardCreate, FlashcardResponse, FlashcardReview, FlashcardStats, FlashcardUpdate
