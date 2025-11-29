@@ -8,7 +8,7 @@ import httpx
 from pydantic import BaseModel
 
 from app.core.config import settings
-from app.core.exceptions import AIServiceError
+from app.utils.exceptions import AIServiceError
 
 logger = logging.getLogger(__name__)
 
