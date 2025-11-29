@@ -9,8 +9,8 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str
-    ALLOWED_HOSTS: str
-    CORS_ORIGINS: str
+    ALLOWED_HOSTS: list[str]
+    CORS_ORIGINS: list[str]
 
     # Database
     DB_USER: str
@@ -129,6 +129,8 @@ class Settings(BaseSettings):
     def assemble_cors_origins(cls, v):
         if isinstance(v, str):
             return [i.strip() for i in v.split(",")]
+        elif isinstance(v, list):
+            return v
         return v
 
     @field_validator("ALLOWED_HOSTS", mode="before")
@@ -136,6 +138,8 @@ class Settings(BaseSettings):
     def assemble_allowed_hosts(cls, v):
         if isinstance(v, str):
             return [i.strip() for i in v.split(",")]
+        elif isinstance(v, list):
+            return v
         return v
 
 
