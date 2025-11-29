@@ -9,8 +9,8 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str
-    ALLOWED_HOSTS: list[str]
-    CORS_ORIGINS: list[str]
+    ALLOWED_HOSTS: List[str]
+    CORS_ORIGINS: List[str]
 
     # Database
     DB_USER: str
