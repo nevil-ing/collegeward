@@ -63,7 +63,7 @@ app.add_middleware(ComprehensiveMonitoringMiddleware)
 app.add_middleware(SecurityHeadersMiddleware,
                    verify_token_fn=verify_firebase_token)
 app.add_middleware(RateLimitMiddleware)
-app.add_middleware(RequestValidationMiddleware)
+#app.add_middleware(RequestValidationMiddleware)
 app.add_middleware(AuthenticationLoggingMiddleware)
 
 app.add_middleware(
