@@ -8,7 +8,7 @@ from app.core.security import get_current_user
 from app.db.session import get_db
 from app.core.logging import get_logger
 from app.utils.exceptions import ValidationError, NotFoundError
-from app.services.flashcard_services import
+from app.services.flashcard_services import  FlashcardService
 from app.services.ai_service import ai_service_manager
 from app.schemas.flashcard_schema import (
     FlashcardCreate, FlashcardResponse, FlashcardReview, FlashcardStats, FlashcardUpdate
@@ -370,7 +370,7 @@ async def update_flashcard(
 
         # Get existing flashcard
         from sqlalchemy import select, and_
-        from app.db.models import Flashcard
+        from app.models.flashcard import Flashcard
 
         query = select(Flashcard).where(
             and_(Flashcard.id == flashcard_id, Flashcard.user_id == user.id)
