@@ -25,7 +25,8 @@ class ComprehensiveMonitoringMiddleware(BaseHTTPMiddleware):
             "/health/circuit-breakers",
             "/docs",
             "/redoc",
-            "/openapi.json"
+            "/openapi.json",
+            "/"
         }
 
     def _get_client_info(self, request: Request) -> Dict[str, str]:
