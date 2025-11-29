@@ -66,10 +66,10 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestValidationMiddleware)
 app.add_middleware(AuthenticationLoggingMiddleware)
 
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.ALLOWED_HOSTS,
-)
+#app.add_middleware(
+    #TrustedHostMiddleware,
+    #allowed_hosts=settings.ALLOWED_HOSTS,
+#)
 
 app.add_middleware(
     CORSMiddleware,
