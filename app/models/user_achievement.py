@@ -8,7 +8,10 @@ from sqlalchemy.sql import func
 import uuid
 from app.db.base import BaseModel
 from app.models.user import User
-from app.models.achievement import Achievement
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.achievement import Achievement
 
 class UserAchievement(BaseModel):
     __tablename__ = "user_achievements"
