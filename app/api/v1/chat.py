@@ -14,6 +14,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.conversation import Conversation
 from app.models.message import Message
+from app.services import ai_tutor_service
 from app.services.user_service import user_service
 from app.schemas.chat_schema import (
     ChatRequest, ChatResponse, ConversationCreate, ConversationResponse,
@@ -733,7 +734,7 @@ async def _generate_ai_response(
     """
     Generate AI response using specialized tutor service with step-by-step reasoning
     """
-    from app.services.ai_tutor_service import ai_tutor_service, TutorMode
+    from app.services.ai_tutor_service import  TutorMode
     from app.services.ai_service import ConversationMessage
 
     try:

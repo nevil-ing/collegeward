@@ -54,7 +54,7 @@ async def upload_file(
 ):
     """Upload and process a study material file with comprehensive validation"""
     from app.core.validation import InputValidator, InputSanitizer
-    from app.core.exceptions import InputValidationError, SecurityValidationError
+    from app.utils.exceptions import InputValidationError, SecurityValidationError
 
     try:
         # Validate user authentication

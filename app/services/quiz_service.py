@@ -1,17 +1,15 @@
 import logging
-from typing import List, Optional, Dict, Any, Tuple, Union
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 
 from app.models.quiz import Quiz
-from app.models.user import  User
 from app.models.note import Note
 from app.models.quiz_question import QuizQuestion
-from app.models.ai_response import AIResponse
 from app.schemas.quiz_schema import (
     QuizCreate, QuizResponse, QuizSubmission, QuizResult,
     QuizStats, QuizQuestionResponse
