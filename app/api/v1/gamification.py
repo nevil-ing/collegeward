@@ -116,7 +116,7 @@ async def get_user_achievements(
 ):
     """Get user's earned achievements"""
     try:
-        from app.db.models import UserAchievement
+        from app.models.user_achievement import UserAchievement
 
         result = await db.execute(
             select(UserAchievement)
@@ -154,7 +154,7 @@ async def get_xp_transactions(
 ):
     """Get user's XP transaction history"""
     try:
-        from app.db.models import XPTransaction
+        from app.models.xp_transaction import XPTransaction
 
         result = await db.execute(
             select(XPTransaction)
@@ -234,7 +234,7 @@ async def get_available_achievements(
 ):
     """Get all available achievements"""
     try:
-        from app.db.models import Achievement
+        from app.models.achievement import Achievement
 
         stmt = select(Achievement).where(Achievement.is_active == True)
 
