@@ -25,4 +25,4 @@ RUN chmod +x /app/start.sh
 EXPOSE 8005
 
 #run the app
-START ["/app/start.sh"]
+ENTRYPOINT ["/app/start.sh"]
