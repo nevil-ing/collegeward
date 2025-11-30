@@ -18,6 +18,6 @@ class Conversation(BaseModel):
     mode: Mapped[str] = mapped_column(String(20), nullable=False)
 
         # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="conversations")
+    user: Mapped["User"] = relationship("User", back_populates="conversation")
     messages: Mapped[List["Message"]] = relationship("Message", back_populates="conversation",cascade="all, delete-orphan")
 
