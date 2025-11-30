@@ -3,6 +3,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 import os
+from urllib.parse import quote_plus
 
 # this is the Alembic Config object
 config = context.config
@@ -25,8 +26,11 @@ def get_url():
     port = os.getenv("DB_PORT", "5432")
     db = os.getenv("DB_NAME", "collegemed")
 
+    # Properly quote the password to handle special characters
+    password_quoted = quote_plus(password)
+
     # For Alembic, use the sync driver (psycopg2)
-    return f"postgresql://{user}:{password}@{host}:{port}/{db}"
+    return f"postgresql://{user}:{password_quoted}@{host}:{port}/{db}"
 
 
 def run_migrations_offline() -> None:
