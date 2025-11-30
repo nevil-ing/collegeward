@@ -18,7 +18,7 @@ from app.utils.exceptions import NotFoundError, ValidationError
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/gamification", tags=["gamification"])
+router = APIRouter()
 
 
 @router.get("/profile", response_model=UserGameProfileResponse)
