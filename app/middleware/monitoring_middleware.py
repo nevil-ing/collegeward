@@ -250,9 +250,10 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
         # Validate content type for POST/PUT requests
         if request.method in ["POST", "PUT", "PATCH"]:
             content_type = request.headers.get("Content-Type", "")
+            content_length = request.headers.get("Content-Length", "0")
 
             # Allow multipart/form-data for file uploads
-            if not content_type:
+            if int(content_length) > 0 and not content_type:
                 from app.utils.exceptions import InputValidationError
                 raise InputValidationError(
                     "Content-Type header is required for POST/PUT requests",
