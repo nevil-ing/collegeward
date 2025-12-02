@@ -1,5 +1,5 @@
-from datetime import datetime
-from time import timezone
+from datetime import datetime, UTC
+from datetime import timezone
 from typing import Optional, Dict, Any, List, Union
 from fastapi import HTTPException
 import traceback
@@ -21,7 +21,7 @@ class CustomException(Exception):
                self.status_code = status_code
                self.error_code = error_code
                self.details = details or {}
-               self.timestamp = datetime.now(timezone.utc)
+               self.timestamp = datetime.now(UTC)
                self.user_message = user_message or message
                self.correlation_id = correlation_id or str(uuid.uuid4())
                self.retry_after = retry_after
