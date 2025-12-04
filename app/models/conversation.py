@@ -11,6 +11,7 @@ from app.db.base import BaseModel
 if TYPE_CHECKING:
     from app.models.message import Message
     from app.models.user import User
+
 class Conversation(BaseModel):
     __tablename__ = "conversation"
 

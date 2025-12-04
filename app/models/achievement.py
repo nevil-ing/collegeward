@@ -1,11 +1,12 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from decimal import Decimal
 from sqlalchemy import String, Integer, Boolean, Text, TIMESTAMP, ForeignKey, DECIMAL, ARRAY
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.db.base import BaseModel
-from app.models.user_achievement import UserAchievement
+if TYPE_CHECKING:
+   from app.models.user_achievement import UserAchievement
 
 class Achievement(BaseModel):
     __tablename__ = "achievements"
