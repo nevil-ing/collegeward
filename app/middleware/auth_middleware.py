@@ -32,7 +32,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 request.state.user_claims = claims
                 request.state.user_id = claims.get("uid") or claims.get("sub") or claims.get("user_id")
             except Exception as e:
-                logger.error("Token verification failed in middleware: ", e)
+                logger.error(f"Token verification failed in middleware: {e}", exc_info=True)
         response = await call_next(request)
 
         # Add security headers
