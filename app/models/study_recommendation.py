@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from decimal import Decimal
@@ -7,7 +7,8 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 import uuid
 from app.db.base import BaseModel
-from app.models.user import User
+if TYPE_CHECKING:
+   from app.models.user import User
 
 
 class StudyRecommendation(BaseModel):
