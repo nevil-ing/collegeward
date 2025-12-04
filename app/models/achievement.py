@@ -4,8 +4,6 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from decimal import Decimal
 from sqlalchemy import String, Integer, Boolean, Text, TIMESTAMP, ForeignKey, DECIMAL, ARRAY
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from sqlalchemy.sql import func
-import uuid
 from app.db.base import BaseModel
 from app.models.user_achievement import UserAchievement
 

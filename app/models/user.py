@@ -1,12 +1,17 @@
 from typing import Optional, List
-from datetime import datetime
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from decimal import Decimal
-from sqlalchemy import String, Integer, Boolean, Text, TIMESTAMP, ForeignKey, DECIMAL, ARRAY
+from sqlalchemy import String, Integer, Boolean
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from sqlalchemy.sql import func
-import uuid
 from app.db.base import BaseModel
+from app.models.conversation import Conversation
+from app.models.flashcard import Flashcard
+from app.models.note import Note
+from app.models.quiz import Quiz
+from app.models.study_recommendation import StudyRecommendation
+from app.models.study_session import StudySession
+from app.models.study_streak import StudyStreak
+from app.models.subject_mastery import SubjectMastery
+from app.models.user_game_profile import UserGameProfile
+
 
 class User(BaseModel):
     __tablename__ = "users"
@@ -19,7 +24,7 @@ class User(BaseModel):
 
 #relationships
     notes: Mapped[List["Note"]] = relationship("Note", back_populates="user", cascade="all, delete-orphan")
-    conversations: Mapped[List["Conversation"]] = relationship("Conversation", back_populates="user",cascade="all, delete-orphan")
+    conversation: Mapped[List["Conversation"]] = relationship("Conversation", back_populates="user",cascade="all, delete-orphan")
     flashcards: Mapped[List["Flashcard"]] = relationship("Flashcard", back_populates="user", cascade="all, delete-orphan")
     quizzes: Mapped[List["Quiz"]] = relationship("Quiz", back_populates="user", cascade="all, delete-orphan")
     study_sessions: Mapped[List["StudySession"]] = relationship("StudySession", back_populates="user",cascade="all, delete-orphan")

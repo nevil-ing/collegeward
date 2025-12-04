@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 import uuid
 from app.db.base import BaseModel
+from app.models.message import Message
 from app.models.user import User
 
 class Conversation(BaseModel):
