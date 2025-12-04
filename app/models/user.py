@@ -1,11 +1,13 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, Integer, Boolean
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.db.base import BaseModel
-from app.models.conversation import Conversation
-from app.models.flashcard import Flashcard
-from app.models.note import Note
-from app.models.quiz import Quiz
+if TYPE_CHECKING:
+    from app.models.conversation import Conversation
+    from app.models.flashcard import Flashcard
+    from app.models.note import Note
+    from app.models.quiz import Quiz
+
 from app.models.study_recommendation import StudyRecommendation
 from app.models.study_session import StudySession
 from app.models.study_streak import StudyStreak
