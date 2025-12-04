@@ -25,7 +25,7 @@ class User(BaseModel):
 
 #relationships
     notes: Mapped[List["Note"]] = relationship("Note", back_populates="user", cascade="all, delete-orphan")
-    conversation: Mapped[List["Conversation"]] = relationship("Conversation", back_populates="user",cascade="all, delete-orphan")
+    conversations: Mapped[List["Conversation"]] = relationship("Conversation", back_populates="user",cascade="all, delete-orphan")
     flashcards: Mapped[List["Flashcard"]] = relationship("Flashcard", back_populates="user", cascade="all, delete-orphan")
     quizzes: Mapped[List["Quiz"]] = relationship("Quiz", back_populates="user", cascade="all, delete-orphan")
     study_sessions: Mapped[List["StudySession"]] = relationship("StudySession", back_populates="user",cascade="all, delete-orphan")
