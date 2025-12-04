@@ -35,9 +35,7 @@ def initialize_firebase():
             }
 
             cred = credentials.Certificate(firebase_config)
-            #firebase_admin.initialize_app(cred, {
-            #    'storageBucket': settings.FIREBASE_STORAGE_BUCKET
-           # })
+            firebase_admin.initialize_app(cred)
             logger.info("Firebase Admin SDK initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize Firebase Admin SDK: {e}")
