@@ -20,4 +20,4 @@ class Message(BaseModel):
     sources: Mapped[Optional[dict]] = mapped_column(JSONB)
 
     #relationships
-    conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
+    conversations: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
