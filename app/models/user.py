@@ -7,12 +7,11 @@ if TYPE_CHECKING:
     from app.models.flashcard import Flashcard
     from app.models.note import Note
     from app.models.quiz import Quiz
-
-from app.models.study_recommendation import StudyRecommendation
-from app.models.study_session import StudySession
-from app.models.study_streak import StudyStreak
-from app.models.subject_mastery import SubjectMastery
-from app.models.user_game_profile import UserGameProfile
+    from app.models.study_recommendation import StudyRecommendation
+    from app.models.study_session import StudySession
+    from app.models.study_streak import StudyStreak
+    from app.models.subject_mastery import SubjectMastery
+    from app.models.user_game_profile import UserGameProfile
 
 
 class User(BaseModel):
