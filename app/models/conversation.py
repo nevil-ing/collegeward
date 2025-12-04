@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 class Conversation(BaseModel):
-    __tablename__ = "conversation"
+    __tablename__ = "conversations"
 
 
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),nullable=False)
@@ -21,6 +21,6 @@ class Conversation(BaseModel):
     mode: Mapped[str] = mapped_column(String(20), nullable=False)
 
         # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="conversation")
-    messages: Mapped[List["Message"]] = relationship("Message", back_populates="conversation",cascade="all, delete-orphan")
+    user: Mapped["User"] = relationship("User", back_populates="conversations")
+    messages: Mapped[List["Message"]] = relationship("Message", back_populates="conversations",cascade="all, delete-orphan")
 
