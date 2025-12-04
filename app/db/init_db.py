@@ -47,7 +47,7 @@ async  def check_database_health():
                 logger.error("Database connection failed")
                 return False
 
-            tables = ["users", "notes", "conversation", "messages", "flashcards", "quizzes", "quiz_questions"]
+            tables = ["users", "notes", "conversations", "messages", "flashcards", "quizzes", "quiz_questions"]
             for table in tables:
                 info = await get_table_info(session, table)
                 logger.info(f"{table}: {info['row_count']} rows, status: {info['status']}")
