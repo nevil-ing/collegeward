@@ -36,7 +36,8 @@ async def get_current_db_user(
             user_data = UserCreate(
                 firebase_uid=firebase_uid,
                 email=email,
-                display_name=current_user_claims.get("name")
+                display_name=current_user_claims.get("name"),
+                study_level=current_user_claims.get("study_level")
             )
 
             user = await user_service.user_repo.create_user(db, user_data)

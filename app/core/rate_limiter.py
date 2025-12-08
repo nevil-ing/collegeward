@@ -114,13 +114,14 @@ class AdvancedRateLimiter:
                 burst_limit=50,
                 tier_name="Premium"
             ),
-            "enterprise": RateLimitConfig(
-                calls_per_minute=300,
-                calls_per_hour=5000,
-                calls_per_day=25000,
-                burst_limit=100,
-                tier_name="Enterprise"
-            )
+
+            #"enterprise": RateLimitConfig(
+             #   calls_per_minute=300,
+              #  calls_per_hour=5000,
+               # calls_per_day=25000,
+                #burst_limit=100,
+                #tier_name="Enterprise"
+            #)
         }
 
     def _get_client_identifier(self, request: Request) -> str:
