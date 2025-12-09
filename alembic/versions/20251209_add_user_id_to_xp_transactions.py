@@ -1,7 +1,7 @@
 """Add user_id column to xp_transactions
 
-Revision ID: 20251209_add_user_id_to_xp_transactions
-Revises: 
+Revision ID: a20251209xpuser
+Revises:
 Create Date: 2025-12-09 21:34:00.000000
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "20251209_add_user_id_to_xp_transactions"
+revision = "a20251209xpuser"
 down_revision = None
 branch_labels = None
 depends_on = None
