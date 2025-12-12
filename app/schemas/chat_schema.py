@@ -90,3 +90,23 @@ class AssessmentResponse(BaseModel):
     student_response: str
     expected_concepts: List[str]
     assessment: Dict[str, Any]
+
+
+class ChatAssessmentRequest(BaseModel):
+    """Request to assess a student's answer to a follow-up question"""
+    conversation_id: UUID = Field(..., description="Conversation containing the assessment question")
+    student_answer: str = Field(..., min_length=1, max_length=2000, description="Student's answer to assess")
+    assessment_question: str = Field(..., description="The question that was asked")
+    expected_concepts: List[str] = Field(default_factory=list, description="Concepts the answer should cover")
+    topic: str = Field(..., description="Topic being assessed for mastery tracking")
+
+
+class ChatAssessmentResponse(BaseModel):
+    """Response from assessing a student's answer"""
+    was_correct: bool = Field(..., description="Whether the answer was correct")
+    feedback: str = Field(..., description="Feedback on the student's answer")
+    concepts_demonstrated: List[str] = Field(default_factory=list, description="Concepts the student correctly identified")
+    concepts_missed: List[str] = Field(default_factory=list, description="Concepts the student missed")
+    mastery_updated: bool = Field(False, description="Whether mastery was updated")
+    new_mastery_percentage: Optional[float] = Field(None, description="New mastery percentage for the topic")
+    follow_up_suggestion: Optional[str] = Field(None, description="Suggested follow-up if answer was incorrect")

@@ -70,9 +70,9 @@ class GroqClient:
     # Available models (updated to current Groq models)
     LLAMA_3_1_70B = "llama-3.3-70b-versatile"  # Current recommended model
     LLAMA_3_1_8B = "llama-3.1-8b-instant"  # Faster alternative
-    MIXTRAL_8X7B = "mixtral-8x7b-32768"  # Deprecated - kept for reference
-    LLAMA3_70B = "llama3-70b-8192"  # Deprecated - kept for reference
-    LLAMA3_8B = "llama3-8b-8192"  # Deprecated - kept for reference
+    MIXTRAL_8X7B = "mixtral-8x7b-32768"  # Deprecated
+    LLAMA3_70B = "llama3-70b-8192"  # Deprecated
+    LLAMA3_8B = "llama3-8b-8192"  # Deprecated
 
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         self.api_key = api_key or settings.GROQ_API_KEY

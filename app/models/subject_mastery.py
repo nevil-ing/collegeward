@@ -22,8 +22,9 @@ class SubjectMastery(BaseModel):
     flashcards_mastered: Mapped[int] = mapped_column(Integer, default=0)
     total_flashcards: Mapped[int] = mapped_column(Integer, default=0)
     last_activity_date: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))
+    # Chat-based learning tracking
+    chat_interactions: Mapped[int] = mapped_column(Integer, default=0)
+    chat_correct_answers: Mapped[int] = mapped_column(Integer, default=0)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="subject_masteries")
-
-

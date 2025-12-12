@@ -102,6 +102,132 @@ class MasteryCalculationService:
             logger.error(f"Error updating mastery from flashcard {flashcard_id}: {e}")
             raise
 
+    async def update_mastery_from_chat_assessment(
+            self,
+            user_id: str,
+            subject_tag: str,
+            was_correct: bool,
+            expected_concepts: Optional[List[str]] = None
+    ):
+        """
+        Update subject mastery based on chat assessment response.
+        
+        This is called when a student answers a follow-up assessment question
+        in the chat. Mastery only increases on correct answers.
+        
+        Args:
+            user_id: User UUID
+            subject_tag: The topic being assessed
+            was_correct: Whether the student's answer was correct
+            expected_concepts: Concepts that were being tested
+        """
+        try:
+            user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+            
+            # Get or create mastery record
+            query = select(SubjectMastery).where(
+                and_(
+                    SubjectMastery.user_id == user_uuid,
+                    SubjectMastery.subject_tag == subject_tag
+                )
+            )
+            result = await self.db.execute(query)
+            mastery = result.scalar_one_or_none()
+            
+            if not mastery:
+                mastery = SubjectMastery(
+                    user_id=user_uuid,
+                    subject_tag=subject_tag,
+                    mastery_percentage=Decimal(0),
+                    total_questions_answered=0,
+                    correct_answers=0,
+                    chat_interactions=0,
+                    chat_correct_answers=0,
+                    last_activity_date=datetime.utcnow()
+                )
+                self.db.add(mastery)
+            
+            # Always increment chat interactions
+            mastery.chat_interactions = (mastery.chat_interactions or 0) + 1
+            mastery.last_activity_date = datetime.utcnow()
+            
+            # Only increment correct answers if correct
+            if was_correct:
+                mastery.chat_correct_answers = (mastery.chat_correct_answers or 0) + 1
+            
+            # Recalculate mastery percentage including chat performance
+            mastery.mastery_percentage = await self._calculate_mastery_percentage_with_chat(
+                user_uuid, subject_tag, mastery
+            )
+            
+            await self.db.commit()
+            
+            logger.info(
+                f"Updated chat mastery for user {user_id}, topic {subject_tag}: "
+                f"correct={was_correct}, new_mastery={mastery.mastery_percentage}%"
+            )
+            
+        except Exception as e:
+            await self.db.rollback()
+            logger.error(f"Error updating mastery from chat assessment: {e}")
+            raise
+    
+    async def _calculate_mastery_percentage_with_chat(
+            self,
+            user_id,
+            subject_tag: str,
+            mastery: SubjectMastery
+    ) -> Decimal:
+        """
+        Calculate mastery percentage including chat performance.
+        
+        Weights:
+        - 50% quiz performance
+        - 30% flashcard mastery  
+        - 20% chat assessment performance
+        """
+        try:
+            quiz_accuracy = await self._get_quiz_accuracy_for_subject(str(user_id), subject_tag)
+            flashcard_mastery = await self._get_flashcard_mastery_for_subject(str(user_id), subject_tag)
+            
+            # Calculate chat accuracy
+            chat_accuracy = None
+            if mastery.chat_interactions and mastery.chat_interactions > 0:
+                correct = mastery.chat_correct_answers or 0
+                chat_accuracy = (Decimal(correct) / Decimal(mastery.chat_interactions)) * Decimal(100)
+            
+            # Weighted average with available data
+            components = []
+            weights = []
+            
+            if quiz_accuracy is not None:
+                components.append(quiz_accuracy * Decimal('0.50'))
+                weights.append(0.50)
+            
+            if flashcard_mastery is not None:
+                components.append(flashcard_mastery * Decimal('0.30'))
+                weights.append(0.30)
+            
+            if chat_accuracy is not None:
+                components.append(chat_accuracy * Decimal('0.20'))
+                weights.append(0.20)
+            
+            if not components:
+                return Decimal(0)
+            
+            # Normalize weights if not all components available
+            total_weight = sum(weights)
+            if total_weight > 0:
+                mastery_value = sum(components) / Decimal(str(total_weight))
+            else:
+                mastery_value = Decimal(0)
+            
+            return min(mastery_value, Decimal(100))
+            
+        except Exception as e:
+            logger.error(f"Error calculating mastery with chat: {e}")
+            return Decimal(0)
+
     async def recalculate_all_masteries(self, user_id: str):
         """Recalculate all subject masteries for a user from scratch"""
         try:

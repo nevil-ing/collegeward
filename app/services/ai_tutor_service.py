@@ -2,9 +2,12 @@ import asyncio
 import logging
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.ai_service import ai_service_manager, ConversationMessage, AIResponse
 from app.core.config import settings
@@ -37,15 +40,30 @@ class TutorResponse(BaseModel):
     follow_up_topics: List[str] = []
     sources_used: List[str] = []
     confidence_level: str = "medium"  # low, medium, high
+    # New: Assessment question for mastery tracking
+    assessment_question: Optional[str] = None
+    expected_concepts: List[str] = Field(default_factory=list)
+    topic_classified: Optional[str] = None
+
+
+class MasteryContext(BaseModel):
+    """Student's mastery profile for adaptive teaching"""
+    all_masteries: Dict[str, float] = Field(default_factory=dict)
+    strong_topics: List[str] = Field(default_factory=list)
+    weak_topics: List[str] = Field(default_factory=list)
+    overall_level: str = "intermediate"  # beginner, intermediate, advanced
+    total_interactions: int = 0
 
 
 class ConversationAnalysis(BaseModel):
     """Analysis of conversation context and learning needs"""
     topic_focus: str
+    topic_code: Optional[str] = None
     difficulty_level: str  # beginner, intermediate, advanced
-    learning_gaps: List[str] = []
+    learning_gaps: List[str] = Field(default_factory=list)
     suggested_approach: str
-    prior_knowledge_assumed: List[str] = []
+    prior_knowledge_assumed: List[str] = Field(default_factory=list)
+    mastery_context: Optional[MasteryContext] = None
 
 
 class AITutorService:
@@ -74,8 +92,11 @@ class AITutorService:
             conversation_history: List[ConversationMessage],
             context: Optional[str] = None,
             mode: TutorMode = TutorMode.AI_MODE,
+            user_id: Optional[UUID] = None,
+            db: Optional[AsyncSession] = None,
             enable_step_by_step: bool = True,
-            enable_guided_questions: bool = True
+            enable_guided_questions: bool = True,
+            generate_assessment: bool = True
     ) -> TutorResponse:
         """
         Generate comprehensive tutor response with reasoning and guidance
@@ -85,16 +106,24 @@ class AITutorService:
             conversation_history: Previous conversation messages
             context: Relevant study material context
             mode: Tutor operating mode (AI or Verified)
+            user_id: User UUID for mastery tracking
+            db: Database session for mastery queries
             enable_step_by_step: Whether to include step-by-step reasoning
             enable_guided_questions: Whether to include guided questions
+            generate_assessment: Whether to generate assessment question for mastery
 
         Returns:
             Structured tutor response with reasoning steps and guidance
         """
         try:
-            # Analyze conversation context
+            # Get student's mastery context if user_id provided
+            mastery_context = None
+            if user_id and db:
+                mastery_context = await self._get_mastery_context(user_id, db)
+            
+            # Analyze conversation context with mastery data
             analysis = await self._analyze_conversation_context(
-                user_message, conversation_history, context
+                user_message, conversation_history, context, mastery_context
             )
 
             # Generate main response
@@ -129,6 +158,14 @@ class AITutorService:
                 main_response, context, mode
             )
 
+            # Generate assessment question for mastery tracking
+            assessment_question = None
+            expected_concepts = []
+            if generate_assessment:
+                assessment_question, expected_concepts = await self._generate_assessment_question(
+                    user_message, main_response.content, analysis
+                )
+
             return TutorResponse(
                 main_answer=main_response.content,
                 reasoning_steps=reasoning_steps,
@@ -136,7 +173,10 @@ class AITutorService:
                 key_takeaways=key_takeaways,
                 follow_up_topics=follow_up_topics,
                 sources_used=main_response.citations,
-                confidence_level=confidence_level
+                confidence_level=confidence_level,
+                assessment_question=assessment_question,
+                expected_concepts=expected_concepts,
+                topic_classified=analysis.topic_code or analysis.topic_focus
             )
 
         except Exception as e:
@@ -239,22 +279,46 @@ class AITutorService:
             self,
             user_message: str,
             conversation_history: List[ConversationMessage],
-            context: Optional[str]
+            context: Optional[str],
+            mastery_context: Optional[MasteryContext] = None
     ) -> ConversationAnalysis:
         """Analyze conversation to understand learning context and needs"""
         try:
-            # Simple analysis for now - could be enhanced with ML models
+            # Extract topic using taxonomy service if available
             topic_focus = self._extract_topic_focus(user_message, conversation_history)
-            difficulty_level = self._assess_difficulty_level(user_message, conversation_history)
-            learning_gaps = self._identify_learning_gaps(conversation_history)
-            suggested_approach = self._suggest_teaching_approach(topic_focus, difficulty_level)
+            topic_code = None
+            
+            # Try to classify topic more precisely
+            try:
+                from app.services.topic_taxonomy_service import classify_topic_simple
+                category, topic_code, confidence = await classify_topic_simple(user_message)
+                if confidence > 0.5:
+                    topic_focus = topic_code
+            except Exception as e:
+                logger.debug(f"Topic classification unavailable: {e}")
+            
+            # Assess difficulty using mastery data
+            difficulty_level = self._assess_difficulty_level(
+                user_message, conversation_history, mastery_context
+            )
+            
+            # Identify learning gaps from mastery data
+            learning_gaps = self._identify_learning_gaps(
+                conversation_history, mastery_context
+            )
+            
+            suggested_approach = self._suggest_teaching_approach(
+                topic_focus, difficulty_level, mastery_context
+            )
 
             return ConversationAnalysis(
                 topic_focus=topic_focus,
+                topic_code=topic_code,
                 difficulty_level=difficulty_level,
                 learning_gaps=learning_gaps,
                 suggested_approach=suggested_approach,
-                prior_knowledge_assumed=[]
+                prior_knowledge_assumed=[],
+                mastery_context=mastery_context
             )
 
         except Exception as e:
@@ -265,6 +329,125 @@ class AITutorService:
                 difficulty_level="intermediate",
                 suggested_approach="step_by_step_explanation"
             )
+    
+    async def _get_mastery_context(
+            self,
+            user_id: UUID,
+            db: AsyncSession
+    ) -> Optional[MasteryContext]:
+        """Get student's mastery profile for adaptive teaching"""
+        try:
+            from app.services.mastery_service import MasteryCalculationService
+            from app.models.subject_mastery import SubjectMastery
+            from sqlalchemy import select, func
+            
+            # Get current masteries
+            query = select(
+                SubjectMastery.subject_tag,
+                SubjectMastery.mastery_percentage,
+                SubjectMastery.total_questions_answered
+            ).where(SubjectMastery.user_id == user_id)
+            
+            result = await db.execute(query)
+            rows = result.fetchall()
+            
+            if not rows:
+                return MasteryContext(overall_level="beginner")
+            
+            masteries = {}
+            strong_topics = []
+            weak_topics = []
+            total_interactions = 0
+            
+            for subject_tag, mastery_pct, questions in rows:
+                pct = float(mastery_pct) if mastery_pct else 0.0
+                masteries[subject_tag] = pct
+                total_interactions += questions or 0
+                
+                if pct >= 80:
+                    strong_topics.append(subject_tag)
+                elif pct < 60:
+                    weak_topics.append(subject_tag)
+            
+            # Calculate overall level
+            avg_mastery = sum(masteries.values()) / len(masteries) if masteries else 0
+            if avg_mastery >= 75:
+                overall_level = "advanced"
+            elif avg_mastery >= 45:
+                overall_level = "intermediate"
+            else:
+                overall_level = "beginner"
+            
+            return MasteryContext(
+                all_masteries=masteries,
+                strong_topics=strong_topics,
+                weak_topics=weak_topics,
+                overall_level=overall_level,
+                total_interactions=total_interactions
+            )
+            
+        except Exception as e:
+            logger.warning(f"Failed to get mastery context: {e}")
+            return None
+    
+    async def _generate_assessment_question(
+            self,
+            user_message: str,
+            response_content: str,
+            analysis: ConversationAnalysis
+    ) -> Tuple[Optional[str], List[str]]:
+        """
+        Generate a follow-up assessment question to test understanding.
+        
+        Returns:
+            Tuple of (assessment_question, expected_concepts)
+        """
+        try:
+            assessment_prompt = f"""Based on this educational exchange, generate ONE short follow-up question to assess the student's understanding.
+
+Student asked: {user_message[:200]}
+Topic: {analysis.topic_focus}
+Difficulty: {analysis.difficulty_level}
+
+Generate a question that:
+1. Tests understanding of the key concept discussed
+2. Requires application of knowledge, not just recall
+3. Is clear and answerable in 1-2 sentences
+
+Output format:
+QUESTION: [your question]
+CONCEPTS: [concept1], [concept2], [concept3]
+"""
+            
+            messages = [
+                ConversationMessage(role="system", content="You are an educational assessment expert."),
+                ConversationMessage(role="user", content=assessment_prompt)
+            ]
+            
+            response = await ai_service_manager.generate_response(
+                messages=messages,
+                mode="ai_mode",
+                temperature=0.5,
+                max_tokens=200
+            )
+            
+            # Parse response
+            content = response.content
+            question = None
+            concepts = []
+            
+            for line in content.split('\n'):
+                if line.startswith('QUESTION:'):
+                    question = line.replace('QUESTION:', '').strip()
+                elif line.startswith('CONCEPTS:'):
+                    concepts_str = line.replace('CONCEPTS:', '').strip()
+                    concepts = [c.strip() for c in concepts_str.split(',')]
+            
+            return question, concepts
+            
+        except Exception as e:
+            logger.warning(f"Assessment question generation failed: {e}")
+            return None, []
 
     async def _generate_main_response(
             self,
@@ -398,42 +581,204 @@ class AITutorService:
     def _assess_difficulty_level(
             self,
             user_message: str,
-            conversation_history: List[ConversationMessage]
+            conversation_history: List[ConversationMessage],
+            mastery_context: Optional[MasteryContext] = None
     ) -> str:
-        """Assess appropriate difficulty level"""
-        # Check for advanced keywords first
-        advanced_keywords = ["mechanism", "pathophysiology", "differential", "diagnosis", "ketoacidosis", "etiology"]
-        if any(word in user_message.lower() for word in advanced_keywords):
+        """Assess appropriate difficulty level using mastery data + message analysis"""
+        
+        # Start with message complexity analysis
+        base_level = self._assess_message_complexity(user_message)
+        
+        # If we have mastery data, use it to adjust
+        if mastery_context:
+            overall_level = mastery_context.overall_level
+            
+            # Check if this topic is in their strong or weak areas
+            # Try to match topic from message
+            topic = self._extract_topic_focus(user_message, conversation_history)
+            
+            # Check mastery for this topic
+            topic_mastery = mastery_context.all_masteries.get(topic, 50.0)
+            
+            if topic_mastery >= 80:
+                # They know this topic well - can handle advanced content
+                return "advanced"
+            elif topic_mastery < 40:
+                # They're struggling with this topic - keep it simpler
+                return "beginner"
+            elif mastery_context.total_interactions < 10:
+                # New student - start with intermediate
+                return "intermediate"
+            else:
+                # Use their overall level as baseline
+                return overall_level
+        
+        return base_level
+    
+    def _assess_message_complexity(self, message: str) -> str:
+        """Analyze message complexity indicators"""
+        advanced_indicators = [
+            "mechanism", "pathophysiology", "differential", 
+            "etiology", "prognosis", "contraindication",
+            "ketoacidosis", "hemodynamics", "pharmacokinetics"
+        ]
+        
+        msg_lower = message.lower()
+        advanced_count = sum(1 for ind in advanced_indicators if ind in msg_lower)
+        
+        if advanced_count >= 2:
             return "advanced"
-
-        # Simple heuristic based on question complexity
-        if len(user_message.split()) < 6:
-            return "beginner"
-        else:
+        elif advanced_count == 1 or len(message.split()) > 15:
             return "intermediate"
+        else:
+            return "beginner"
 
-    def _identify_learning_gaps(self, conversation_history: List[ConversationMessage]) -> List[str]:
-        """Identify potential learning gaps from conversation"""
-        # Placeholder implementation
-        return []
+    def _identify_learning_gaps(
+            self,
+            conversation_history: List[ConversationMessage],
+            mastery_context: Optional[MasteryContext] = None
+    ) -> List[str]:
+        """Identify learning gaps from mastery data + conversation patterns"""
+        gaps = []
+        
+        # 1. Gaps from mastery data (topics with low scores)
+        if mastery_context:
+            weak_topics = mastery_context.weak_topics
+            for topic in weak_topics[:3]:
+                mastery_pct = mastery_context.all_masteries.get(topic, 0)
+                gaps.append(f"Low mastery in {topic}: {mastery_pct:.0f}%")
+        
+        # 2. Gaps from conversation patterns - look for confusion indicators
+        confusion_phrases = [
+            "i don't understand", "what do you mean", "can you explain",
+            "i'm confused", "wait", "sorry", "not sure", "help"
+        ]
+        
+        for msg in conversation_history[-5:]:  # Check last 5 messages
+            if msg.role == "user":
+                msg_lower = msg.content.lower()
+                if any(phrase in msg_lower for phrase in confusion_phrases):
+                    gaps.append("Confusion detected in recent messages")
+                    break
+        
+        # 3. Gaps from repeated questions on same topic
+        user_messages = [m.content.lower() for m in conversation_history if m.role == "user"]
+        if len(user_messages) >= 3:
+            # Check for repeated keywords suggesting struggle
+            from collections import Counter
+            all_words = []
+            for msg in user_messages[-3:]:
+                words = [w for w in msg.split() if len(w) > 4]
+                all_words.extend(words)
+            
+            word_counts = Counter(all_words)
+            repeated = [w for w, c in word_counts.items() if c >= 2]
+            if repeated:
+                gaps.append(f"Repeated questions about: {', '.join(repeated[:3])}")
+        
+        return gaps
 
-    def _suggest_teaching_approach(self, topic_focus: str, difficulty_level: str) -> str:
-        """Suggest appropriate teaching approach"""
-        if difficulty_level == "beginner":
+    def _suggest_teaching_approach(
+            self,
+            topic_focus: str,
+            difficulty_level: str,
+            mastery_context: Optional[MasteryContext] = None
+    ) -> str:
+        """Suggest appropriate teaching approach based on mastery and difficulty"""
+        
+        # Check if topic is in weak areas
+        is_weak_topic = False
+        if mastery_context and topic_focus in mastery_context.weak_topics:
+            is_weak_topic = True
+        
+        if difficulty_level == "beginner" or is_weak_topic:
             return "basic_explanation_with_examples"
         elif difficulty_level == "advanced":
-            return "detailed_analysis_with_clinical_correlation"
+            if mastery_context and mastery_context.overall_level == "advanced":
+                return "detailed_analysis_with_clinical_correlation"
+            else:
+                return "step_by_step_explanation"
         else:
             return "step_by_step_explanation"
 
     def _select_system_prompt(self, analysis: ConversationAnalysis) -> str:
-        """Select appropriate system prompt based on analysis"""
+        """Select appropriate system prompt based on analysis and mastery context"""
+        # Get base prompt
         if analysis.suggested_approach == "step_by_step_explanation":
-            return self.system_prompts["step_by_step"]
+            base_prompt = self.system_prompts["step_by_step"]
         elif analysis.suggested_approach == "detailed_analysis_with_clinical_correlation":
-            return self.system_prompts["clinical_reasoning"]
+            base_prompt = self.system_prompts["clinical_reasoning"]
         else:
-            return self.system_prompts["base_tutor"]
+            base_prompt = self.system_prompts["base_tutor"]
+        
+        # Add adaptive student context if mastery data available
+        if analysis.mastery_context:
+            adaptive_context = self._build_adaptive_context(analysis.mastery_context, analysis)
+            return base_prompt + adaptive_context
+        
+        return base_prompt
+    
+    def _build_adaptive_context(
+            self, 
+            mastery_context: MasteryContext, 
+            analysis: ConversationAnalysis
+    ) -> str:
+        """Build adaptive prompt context based on student's mastery profile"""
+        
+        strong_topics = ", ".join(mastery_context.strong_topics[:5]) or "None yet"
+        weak_topics = ", ".join(mastery_context.weak_topics[:5]) or "None identified"
+        
+        level_instructions = {
+            "beginner": """
+- Use simple, clear language and avoid unexplained medical jargon
+- Provide analogies and real-world examples for complex concepts
+- Break explanations into smaller, digestible steps
+- Check understanding frequently with simple follow-up questions
+""",
+            "intermediate": """
+- Connect new concepts to prior knowledge they've demonstrated
+- Use clinical correlations to reinforce learning
+- Encourage deeper reasoning with "what if" scenarios
+- Build on fundamentals towards more complex applications
+""",
+            "advanced": """
+- Use precise medical terminology appropriate for their level
+- Discuss edge cases, exceptions, and nuances
+- Present complex differential diagnoses and decision trees
+- Challenge with research-level questions and evidence-based reasoning
+"""
+        }
+        
+        level = mastery_context.overall_level
+        instructions = level_instructions.get(level, level_instructions["intermediate"])
+        
+        # Check if current topic is in weak areas
+        current_topic = analysis.topic_focus
+        is_weak_topic = current_topic in mastery_context.weak_topics
+        
+        weak_topic_note = ""
+        if is_weak_topic:
+            mastery_pct = mastery_context.all_masteries.get(current_topic, 0)
+            weak_topic_note = f"""
+NOTE: The student is struggling with this topic ({current_topic}: {mastery_pct:.0f}% mastery).
+- Provide extra scaffolding and examples
+- Check understanding more frequently  
+- Be encouraging and patient
+"""
+        
+        adaptive_prompt = f"""
+
+=== STUDENT PROFILE ===
+Overall Level: {level.upper()}
+Total Interactions: {mastery_context.total_interactions}
+Strong Topics: {strong_topics}
+Weak Topics: {weak_topics}
+
+=== TEACHING INSTRUCTIONS ===
+{instructions}
+{weak_topic_note}
+"""
+        return adaptive_prompt
 
     def _extract_key_takeaways(self, response_content: str) -> List[str]:
         """Extract key takeaways from response"""
@@ -571,7 +916,7 @@ Provide constructive feedback that encourages learning.
 
     def _get_base_tutor_prompt(self) -> str:
         """Base system prompt for AI tutor"""
-        return """You are StudyBlitzAI, an expert medical tutor designed to help medical students learn through step-by-step reasoning and clinical examples.
+        return """You are CollegeWard, an expert medical tutor designed to help medical students learn through step-by-step reasoning and clinical examples.
 
 Your teaching approach:
 1. Break down complex medical concepts into digestible steps
