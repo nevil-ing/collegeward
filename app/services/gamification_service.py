@@ -254,6 +254,8 @@ class GamificationService:
 
     async def get_streak_status(self, user_id: UUID) -> StreakStatus:
         """Get current streak status for user"""
+        from datetime import timezone
+        
         profile = await self.get_or_create_user_profile(user_id)
 
         # Check if streak is at risk
@@ -261,7 +263,16 @@ class GamificationService:
         hours_until_break = None
 
         if profile.last_activity_date:
-            hours_since_activity = (datetime.now() - profile.last_activity_date).total_seconds() / 3600
+            # Use timezone-aware datetime for comparison
+            now = datetime.now(timezone.utc)
+            # Ensure last_activity_date is timezone-aware
+            last_activity = profile.last_activity_date
+            if last_activity.tzinfo is None:
+                # If naive, assume UTC
+                from datetime import timezone as tz
+                last_activity = last_activity.replace(tzinfo=tz.utc)
+            
+            hours_since_activity = (now - last_activity).total_seconds() / 3600
             if hours_since_activity > 20:  # 20 hours without activity
                 streak_at_risk = True
                 hours_until_break = max(0, int(24 - hours_since_activity))
