@@ -19,25 +19,31 @@ class QdrantManager:
     def _initialize_client(self):
         try:
             host = settings.QDRANT_HOST
+            api_key = settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None
+            
             if host.startswith(("http://", "https://")):
+                # Host is already a full URL
                 url_parts = host.split("://")
                 protocol = url_parts[0]
                 host_part = url_parts[1].split(":")[0]
                 url = f"{protocol}://{host_part}:{settings.QDRANT_PORT}"
                 self.client = QdrantClient(
                     url=url,
-                    api_key=settings.QDRANT_API_KEY,
+                    api_key=api_key,
                     timeout=settings.QDRANT_TIMEOUT,
+                    prefer_grpc=False,
                 )
                 logger.info(f"Connected to Qdrant at {url}")
             else:
+                # For local/container connections, explicitly use HTTP URL to avoid SSL issues
+                url = f"http://{host}:{settings.QDRANT_PORT}"
                 self.client = QdrantClient(
-                    host=host,
-                    port=settings.QDRANT_PORT,
-                    api_key=settings.QDRANT_API_KEY,
+                    url=url,
+                    api_key=api_key,
                     timeout=settings.QDRANT_TIMEOUT,
+                    prefer_grpc=False,
                 )
-                logger.info(f"Connected to Qdrant at {host}:{settings.QDRANT_PORT}")
+                logger.info(f"Connected to Qdrant at {url}")
             self._ensure_collection_exists()
 
         except Exception as e:
