@@ -11,7 +11,7 @@ class XPTransactionBase(BaseModel):
     xp_earned: int = Field(..., ge=0)
     multiplier: Decimal = Field(default=Decimal("1.0"), ge=0)
     reason: str = Field(..., max_length=200)
-    metadata: Optional[Dict[str, Any]] = None
+    transaction_metadata: Optional[Dict[str, Any]] = None
 
 
 class XPTransactionCreate(XPTransactionBase):
