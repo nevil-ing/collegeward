@@ -236,6 +236,29 @@ class RAGService:
             raise DatabaseError(f"Failed to check context availability: {str(e)}")
 
 
+    async def _validate_user_access(self, user_id: str, db: AsyncSession) -> None:
+        """Validate that user exists and has access to RAG features
+        
+        Args:
+            user_id: Firebase UID (string)
+            db: Database session
+            
+        Raises:
+            ProcessingError: If user is not found or doesn't have access
+        """
+        try:
+            from app.services.user_service import user_service
+            user = await user_service.get_user_by_firebase_uid(db, user_id)
+            if not user:
+                raise ProcessingError(f"User not found: {user_id}")
+            if not user.is_active:
+                raise ProcessingError(f"User account is not active: {user_id}")
+        except ProcessingError:
+            raise
+        except Exception as e:
+            logger.error(f"User access validation failed: {e}")
+            raise ProcessingError(f"Failed to validate user access: {str(e)}")
+
     def _get_token_limit(self, max_tokens: Optional[int], mode: str) -> int:
             """Determine appropriate token limit based on mode and constraints"""
             if max_tokens:
