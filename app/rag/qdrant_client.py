@@ -36,10 +36,10 @@ class QdrantManager:
                 logger.info(f"Connected to Qdrant at {url}")
             else:
                 # For local/container connections, explicitly use HTTP URL to avoid SSL issues
+                # Don't pass api_key for local connections (no auth needed, avoids warning)
                 url = f"http://{host}:{settings.QDRANT_PORT}"
                 self.client = QdrantClient(
                     url=url,
-                    api_key=api_key,
                     timeout=settings.QDRANT_TIMEOUT,
                     prefer_grpc=False,
                 )
