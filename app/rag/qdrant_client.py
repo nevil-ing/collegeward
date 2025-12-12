@@ -19,7 +19,7 @@ class QdrantManager:
     def _initialize_client(self):
         try:
             host = settings.QDRANT_HOST
-            if host.startswith("http://", "https://"):
+            if host.startswith(("http://", "https://")):
                 url_parts = host.split("://")
                 protocol = url_parts[0]
                 host_part = url_parts[1].split(":")[0]

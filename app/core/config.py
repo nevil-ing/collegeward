@@ -21,10 +21,11 @@ class Settings(BaseSettings):
     DATABASE_MAX_OVERFLOW: int
 
     # Qdrant Vector Database
-    QDRANT_HOST: str
-    QDRANT_PORT: int
-    QDRANT_API_KEY: Optional[str]
-    QDRANT_COLLECTION_NAME: str
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_API_KEY: Optional[str] = None
+    QDRANT_COLLECTION_NAME: str = "collegeward"
+    QDRANT_TIMEOUT: int = 30
 
     # Firebase Configuration
     FIREBASE_PROJECT_ID: str
