@@ -111,20 +111,6 @@ class LocalStorageService:
         # Return a relative path that can be accessed via /storage/{path}
         return f"/storage/{storage_path}"
 
-    async def generate_signed_url(
-            self,
-            storage_path: str,
-            expiration_hours: int = 1
-    ) -> str:
-        """Generate a URL for accessing the file
-
-        For local storage, we'll return a simple path that can be served
-        by a static file endpoint. In production, you might want to use
-        a proper file serving endpoint.
-        """
-        # Return a relative path that can be accessed via /storage/{path}
-        return f"/storage/{storage_path}"
-
     def validate_file_type(self, filename: str) -> bool:
         """Validate if file type is allowed"""
         if not filename:

@@ -34,10 +34,10 @@ class DocumentService:
 
         try:
             # Validate file
-            if not file_storage.validate_file_type(filename):
+            if not local_storage.validate_file_type(filename):
                 raise ProcessingError(f"Unsupported file type: {file_type}")
 
-            if not file_storage.validate_file_size(len(file_content)):
+            if not local_storage.validate_file_size(len(file_content)):
                 raise ProcessingError("File size exceeds maximum limit")
 
             # Get User by Firebase UID first
@@ -66,9 +66,9 @@ class DocumentService:
             # Upload file to local storage
             await self._update_processing_status(db, note.id, "uploading")
 
-            content_type = file_storage.get_content_type(filename)
+            content_type = local_storage.get_content_type(filename)
             # Use Firebase UID for storage directory structure (user_id is already Firebase UID)
-            upload_result = await file_storage.upload_file(
+            upload_result = await local_storage.upload_file(
                 file_content, filename, user_id, content_type
             )
 
@@ -215,7 +215,7 @@ class DocumentService:
                         if note and note.storage_path:
                             # Delete file from local storage
                             try:
-                                await file_storage.delete_file(note.storage_path)
+                                await local_storage.delete_file(note.storage_path)
                             except Exception as e:
                                 logger.error(f"Failed to clean up file: {e}")
 
@@ -315,7 +315,7 @@ class DocumentService:
                 # Delete file from local storage
                 if note.storage_path:
                     try:
-                        await file_storage.delete_file(note.storage_path)
+                        await local_storage.delete_file(note.storage_path)
                     except Exception as e:
                         logger.error(f"Failed to delete file: {e}")
 
@@ -373,72 +373,72 @@ class DocumentService:
                 logger.error(f"Failed to get note details: {e}")
                 raise DatabaseError(f"Failed to retrieve note details: {e}")
 
-async def store_file_for_later_processing(
-                self,
-                file_content: bytes,
-                filename: str,
-                file_type: str,
-                user_id: str,
-                db: AsyncSession,
-                subject_tags: Optional[List[str]] = None
-        ) -> Dict[str, Any]:
-            """Store file for later processing when main processing is unavailable"""
-            try:
-                # Validate file
-                if not file_storage.validate_file_type(filename):
-                    raise ProcessingError(f"Unsupported file type: {file_type}")
+    async def store_file_for_later_processing(
+            self,
+            file_content: bytes,
+            filename: str,
+            file_type: str,
+            user_id: str,
+            db: AsyncSession,
+            subject_tags: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Store file for later processing when main processing is unavailable"""
+        try:
+            # Validate file
+            if not local_storage.validate_file_type(filename):
+                raise ProcessingError(f"Unsupported file type: {file_type}")
 
-                if not file_storage.validate_file_size(len(file_content)):
-                    raise ProcessingError("File size exceeds maximum limit")
+            if not local_storage.validate_file_size(len(file_content)):
+                raise ProcessingError("File size exceeds maximum limit")
 
-                # Get User by Firebase UID first
-                from app.services.user_service import user_service
-                user = await user_service.get_user_by_firebase_uid(db, user_id)
-                if not user:
-                    raise StorageError(f"User not found for Firebase UID: {user_id}")
+            # Get User by Firebase UID first
+            from app.services.user_service import user_service
+            user = await user_service.get_user_by_firebase_uid(db, user_id)
+            if not user:
+                raise StorageError(f"User not found for Firebase UID: {user_id}")
 
-                # Create note record with pending status
-                note = Note(
-                    user_id=user.id,  # Use user.id (UUID) instead
-                    filename=filename,
-                    file_type=file_type,
-                    file_size=len(file_content),
-                    storage_path="",
-                    processing_status="pending_retry",  # Special status for degraded service
-                    subject_tags=subject_tags
-                )
+            # Create note record with pending status
+            note = Note(
+                user_id=user.id,  # Use user.id (UUID) instead
+                filename=filename,
+                file_type=file_type,
+                file_size=len(file_content),
+                storage_path="",
+                processing_status="pending_retry",  # Special status for degraded service
+                subject_tags=subject_tags
+            )
 
-                db.add(note)
-                await db.commit()
-                await db.refresh(note)
+            db.add(note)
+            await db.commit()
+            await db.refresh(note)
 
-                # Upload file to local storage only
-                content_type = file_storage.get_content_type(filename)
-                # Use Firebase UID for storage directory structure (user_id is already Firebase UID)
-                upload_result = await file_storage.upload_file(
-                    file_content, filename, user_id, content_type
-                )
+            # Upload file to local storage only
+            content_type = local_storage.get_content_type(filename)
+            # Use Firebase UID for storage directory structure (user_id is already Firebase UID)
+            upload_result = await local_storage.upload_file(
+                file_content, filename, user_id, content_type
+            )
 
-                # Update note with storage path
-                note.storage_path = upload_result['storage_path']
-                await db.commit()
+            # Update note with storage path
+            note.storage_path = upload_result['storage_path']
+            await db.commit()
 
-                logger.info(f"Stored file {filename} for later processing (degraded service)")
+            logger.info(f"Stored file {filename} for later processing (degraded service)")
 
-                return {
-                    "note_id": str(note.id),
-                    "filename": filename,
-                    "file_type": file_type,
-                    "file_size": len(file_content),
-                    "processing_status": "pending_retry",
-                    "chunks_created": 0,
-                    "subject_tags": subject_tags or [],
-                    "message": "File stored successfully. Processing will be completed when service is restored."
-                }
+            return {
+                "note_id": str(note.id),
+                "filename": filename,
+                "file_type": file_type,
+                "file_size": len(file_content),
+                "processing_status": "pending_retry",
+                "chunks_created": 0,
+                "subject_tags": subject_tags or [],
+                "message": "File stored successfully. Processing will be completed when service is restored."
+            }
 
-            except Exception as e:
-                logger.error(f"Failed to store file for later processing: {e}")
-                raise StorageError(f"File storage failed: {str(e)}")
+        except Exception as e:
+            logger.error(f"Failed to store file for later processing: {e}")
+            raise StorageError(f"File storage failed: {str(e)}")
 
 
 document_service = DocumentService()
