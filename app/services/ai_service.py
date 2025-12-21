@@ -253,7 +253,7 @@ class AIServiceManager:
 
     def _get_system_prompt(self) -> str:
         """Get system prompt for AI tutor"""
-        return """You are StudyBlitzAI, an expert medical tutor designed to help medical students learn complex concepts through step-by-step reasoning and clinical examples.
+        return """You are CollegeWard, an expert medical tutor designed to help medical students learn complex concepts through step-by-step reasoning and clinical examples.
 
 Your teaching approach:
 1. Break down complex medical concepts into digestible steps
