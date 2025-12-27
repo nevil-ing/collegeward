@@ -55,12 +55,21 @@ async def upload_file(
     """Upload and process a study material file with comprehensive validation"""
     from app.core.validation import InputValidator, InputSanitizer
     from app.utils.exceptions import InputValidationError, SecurityValidationError
+    from app.services.subscription_service import subscription_service
 
     try:
         # Validate user authentication
         user_id = current_user.get("uid")
         if not user_id:
             raise InputValidationError("Invalid user authentication", "user_id")
+
+        # Check subscription limits
+        can_upload, limit_message = await subscription_service.check_can_upload_note(db, user_id)
+        if not can_upload:
+            raise HTTPException(
+                status_code=403,
+                detail={"error": "subscription_limit", "message": limit_message}
+            )
 
         # Validate request size
         content_length = int(request.headers.get("content-length", 0))
@@ -141,6 +150,9 @@ async def upload_file(
             logger.warning(f"File processing degraded: {e}")
             # Continue with degraded result
             result = e.details.get("result", {})
+
+        # Increment usage counter
+        await subscription_service.increment_note_upload(db, user_id)
 
         return {
             "message": "File uploaded and processed successfully",

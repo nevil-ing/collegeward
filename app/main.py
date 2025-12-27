@@ -21,7 +21,7 @@ from app.middleware.monitoring_middleware import ResponseEnhancementMiddleware, 
     RequestValidationMiddleware
 from app.utils.error_handler import setup_exception_handlers
 from app.core.rate_limiter import RateLimitMiddleware
-from app.api.v1 import auth, notes, chat, flashcards, quizzes, progress, gamification, monitoring
+from app.api.v1 import auth, notes, chat, flashcards, quizzes, progress, gamification, monitoring, subscription
 
 logger = get_logger(__name__)
 
@@ -87,6 +87,7 @@ app.include_router(quizzes.router, prefix="/api/v1/quizzes", tags=["Quizzes"])
 app.include_router(progress.router, prefix="/api/v1/progress", tags=["Progress"])
 app.include_router(gamification.router, prefix="/api/v1/gamification", tags=["Gamification"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["Monitoring"])
+app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["Subscription"])
 
 storage_path = Path("./storage")
 storage_path.mkdir(parents=True, exist_ok=True)
