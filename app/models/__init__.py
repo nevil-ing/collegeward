@@ -15,5 +15,5 @@ from app.models.achievement import Achievement
 from app.models.user_achievement import UserAchievement
 from app.models.xp_transaction import XPTransaction
 from app.models.ai_response import AIResponse
-from app.models.topic_taxonomy import TopicTaxonomy
+from app.models.topic_taxonomy import TopicCategory, Topic, TopicSyncLog
 from app.models.subscription import Subscription
