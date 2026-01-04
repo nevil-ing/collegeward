@@ -40,25 +40,16 @@ class ProgressService:
     ) -> StudySessionResponse:
         """Create a new study session record"""
         try:
-            # Simple approach: try UUID first, fall back to string
-            user_id_value = user_id
-            activity_id_value = session_data.activity_id
-
-            # Check if we're dealing with UUID models by trying to create a StudySession
-            # and seeing what type of user_id it expects
-            try:
-                # Try UUID conversion first
-                if isinstance(user_id, str) and len(user_id.replace('-', '')) == 32:
-                    user_id_value = uuid.UUID(user_id)
-                if session_data.activity_id and isinstance(session_data.activity_id, str):
-                    try:
-                        activity_id_value = uuid.UUID(session_data.activity_id)
-                    except ValueError:
-                        activity_id_value = None
-            except (ValueError, TypeError):
-                # Fall back to string values
-                user_id_value = str(user_id)
-                activity_id_value = str(session_data.activity_id) if session_data.activity_id else None
+            # Get the database UUID from Firebase UID
+            user_id_value = await self._get_db_user_id(user_id)
+            
+            # Handle activity_id conversion
+            activity_id_value = None
+            if session_data.activity_id and isinstance(session_data.activity_id, str):
+                try:
+                    activity_id_value = uuid.UUID(session_data.activity_id)
+                except ValueError:
+                    activity_id_value = None
 
             study_session = StudySession(
                 user_id=user_id_value,
@@ -97,8 +88,8 @@ class ProgressService:
     async def get_progress_analytics(self, user_id: str) -> ProgressAnalyticsResponse:
         """Get comprehensive progress analytics for a user"""
         try:
-            # Handle both UUID objects (production) and string IDs (tests)
-            user_id_value = self._convert_user_id(user_id)
+            # Get the database UUID from Firebase UID
+            user_id_value = await self._get_db_user_id(user_id)
 
             # Get study time analytics
             total_study_time = await self._get_total_study_time(user_id_value)
@@ -149,7 +140,7 @@ class ProgressService:
     async def get_study_time_analytics(self, user_id: str) -> StudyTimeAnalytics:
         """Get detailed study time analytics"""
         try:
-            user_id_value = self._convert_user_id(user_id)
+            user_id_value = await self._get_db_user_id(user_id)
 
             # Get daily study times for last 30 days
             daily_times = await self._get_daily_study_times(user_id_value, days=30)
@@ -177,7 +168,7 @@ class ProgressService:
     async def get_performance_analytics(self, user_id: str) -> PerformanceAnalytics:
         """Get performance analytics including accuracy and trends"""
         try:
-            user_id_value = self._convert_user_id(user_id)
+            user_id_value = await self._get_db_user_id(user_id)
 
             # Calculate overall quiz accuracy
             quiz_accuracy = await self._calculate_quiz_accuracy(user_id_value)
@@ -214,7 +205,7 @@ class ProgressService:
     ) -> List[StudyRecommendationResponse]:
         """Generate personalized study recommendations"""
         try:
-            user_id_value = self._convert_user_id(user_id)
+            user_id_value = await self._get_db_user_id(user_id)
 
             # Clear old recommendations
             await self._clear_old_recommendations(user_id_value)
@@ -253,7 +244,7 @@ class ProgressService:
     async def get_review_reminders(self, user_id: str) -> ReviewReminderResponse:
         """Get review reminders for flashcards and weak areas"""
         try:
-            user_id_value = self._convert_user_id(user_id)
+            user_id_value = await self._get_db_user_id(user_id)
             now = datetime.utcnow()
 
             # Count flashcards due for review
@@ -317,8 +308,16 @@ class ProgressService:
 
     # Private helper methods
 
+    async def _get_db_user_id(self, firebase_uid: str) -> uuid.UUID:
+        """Get the database user ID (UUID) from Firebase UID"""
+        from app.services.user_service import user_service
+        user = await user_service.get_user_by_firebase_uid(self.db, firebase_uid)
+        if not user:
+            raise ValueError(f"User not found for Firebase UID: {firebase_uid}")
+        return user.id
+
     def _convert_user_id(self, user_id: str):
-        """Convert user_id to appropriate type based on model"""
+        """Convert user_id to appropriate type based on model - DEPRECATED, use _get_db_user_id instead"""
         # Simple approach: try UUID first, fall back to string
         try:
             if isinstance(user_id, str) and len(user_id.replace('-', '')) == 32:
